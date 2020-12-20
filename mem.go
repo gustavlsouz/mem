@@ -101,7 +101,7 @@ func callClear() {
 	}
 }
 
-func psAux() []map[string]string {
+func ps() []map[string]string {
 	log.Println("ps -ux")
 	cmd := exec.Command("ps", "-ux")
 	var out bytes.Buffer
@@ -251,7 +251,7 @@ func main() {
 		if used >= context.MaxUsage {
 			log.Printf("memory used: %d MB\n", used)
 			log.Println("max usage has been reached")
-			context.Processes = psAux()
+			context.Processes = ps()
 			killed := killTargets(context)
 			checkKilled(killed)
 			if used >= context.CriticalUsage {
