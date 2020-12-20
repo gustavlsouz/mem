@@ -27,6 +27,18 @@ type Context struct {
 	Processes       []map[string]string
 	OsArgs          []string
 	Memory          *memory.Stats
+	KillTask        string
+}
+
+/* Choose the target*/
+func (context *Context) GetTargets() []string {
+	if context.KillTask == "Targets" {
+		return context.Targets
+	}
+	if context.KillTask == "CriticalTargets" {
+		return context.CriticalTargets
+	}
+	return nil
 }
 
 func toKb(bytes uint64) uint64 {
@@ -153,8 +165,9 @@ func contains(arr []string, str string) bool {
 
 func getProcessessForTargets(context *Context) []map[string]string {
 	targetProcesses := make([]map[string]string, 0)
+	targets := context.GetTargets()
 	for _, process := range context.Processes {
-		proccessNameInPath := containsPattern(context.Targets, process["path"])
+		proccessNameInPath := containsPattern(targets, process["path"])
 		inIgnore := containsPattern(context.Ignores, process["path"])
 		if inIgnore {
 			log.Println(process["path"], "in ignore")
@@ -176,9 +189,17 @@ func killTargets(context *Context) bool {
 }
 
 func logInfo(maxUsage, criticalUsage uint64) {
-	log.Println("version 0.0.3")
+	log.Println("version 0.0.4")
 	log.Println("max usage:", maxUsage, "MB")
 	log.Println("critical:", criticalUsage, "MB")
+}
+
+func checkKilled(killed bool) {
+	if killed {
+		log.Println("kills executed")
+	} else {
+		log.Println("nothing to kill")
+	}
 }
 
 func main() {
@@ -190,12 +211,13 @@ func main() {
 	}
 
 	context := &Context{
-		Wait:     time.Second * 4,
+		Wait:     time.Second * 2,
 		MaxUsage: 6800,
-		// MaxUsage:        2000,
-		CriticalUsage:   7200,
+		// MaxUsage: 1000,
+		CriticalUsage: 7200,
+		// CriticalUsage:   1100,
 		Ignores:         []string{"golang"},
-		Targets:         []string{"postman", "firefox", "code"},
+		Targets:         []string{"postman", "firefox", "code", "chromium-browser"},
 		CriticalTargets: []string{"spotify", "brave"},
 		UserInfo:        userInfo,
 		OsArgs:          os.Args[1:],
@@ -231,18 +253,17 @@ func main() {
 			log.Println("max usage has been reached")
 			context.Processes = psAux()
 			killed := killTargets(context)
-			if killed {
-				log.Println("kills executed")
-			} else {
-				log.Println("nothing to kill")
-			}
+			checkKilled(killed)
 			if used >= context.CriticalUsage {
 				log.Println("critical usage has been reached")
-				killTargets(context)
+				context.KillTask = "CriticalTargets"
+				criticalKilled := killTargets(context)
+				checkKilled(criticalKilled)
 				log.Println("critical kills executed")
 			}
 		}
 		logs++
+		context.KillTask = "Targets"
 		time.Sleep(context.Wait)
 	}
 }
