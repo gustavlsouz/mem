@@ -12,6 +12,7 @@
             "program": "${workspaceFolder}/mem.go",
             "env": {},
             "args": [
+                "-mod=mod",
                 "--debug"
             ]
         }

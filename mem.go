@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -19,7 +21,7 @@ import (
 type Context struct {
 	MaxUsage        uint64
 	CriticalUsage   uint64
-	Wait            time.Duration
+	Interval        time.Duration
 	Ignores         []string
 	Targets         []string
 	CriticalTargets []string
@@ -28,6 +30,15 @@ type Context struct {
 	OsArgs          []string
 	Memory          *memory.Stats
 	KillTask        string
+}
+
+type Config struct {
+	Interval        float32  `json:"interval"`
+	MaxUsage        int16    `json:"maxUsage"`
+	CiritalUsage    int16    `json:"ciritalUsage"`
+	Ignores         []string `json:"ignores"`
+	Targets         []string `json:"targets"`
+	CriticalTargets []string `json:"criticalTargets"`
 }
 
 /* Choose the target*/
@@ -202,6 +213,19 @@ func checkKilled(killed bool) {
 	}
 }
 
+func getConfig() Config {
+	configFile, err := os.Open("config.json")
+	if err != nil {
+		panic(err)
+	}
+	defer configFile.Close()
+	log.Println("config loaded successfully")
+	byteValue, _ := ioutil.ReadAll(configFile)
+	var config Config
+	json.Unmarshal(byteValue, &config)
+	return config
+}
+
 func main() {
 	log.Println("initializing...")
 	userInfo, errUserInfo := user.Current()
@@ -209,16 +233,16 @@ func main() {
 	if errUserInfo != nil {
 		panic(errUserInfo)
 	}
-
+	config := getConfig()
 	context := &Context{
-		Wait:     time.Second * 2,
+		Interval: time.Second * time.Duration(config.Interval),
 		MaxUsage: 6800,
 		// MaxUsage: 1000,
 		CriticalUsage: 7200,
 		// CriticalUsage:   1100,
-		Ignores:         []string{"golang"},
-		Targets:         []string{"postman", "firefox", "code", "chromium-browser"},
-		CriticalTargets: []string{"spotify", "brave"},
+		Ignores:         config.Ignores,
+		Targets:         config.Targets,
+		CriticalTargets: config.CriticalTargets,
 		UserInfo:        userInfo,
 		OsArgs:          os.Args[1:],
 	}
@@ -239,7 +263,7 @@ func main() {
 		memory, err := memory.Get()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err)
-			time.Sleep(context.Wait)
+			time.Sleep(context.Interval)
 			context.Memory = nil
 			continue
 		}
@@ -264,6 +288,6 @@ func main() {
 		}
 		logs++
 		context.KillTask = "Targets"
-		time.Sleep(context.Wait)
+		time.Sleep(context.Interval)
 	}
 }

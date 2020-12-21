@@ -1,0 +1,8 @@
+{
+  "interval": 2,
+  "maxUsage": 6800,
+  "ciritalUsage": 7200,
+  "ignores": ["golang"],
+  "targets": ["postman", "firefox", "code", "chromium-browser"],
+  "criticalTargets": ["spotify", "brave"]
+}
