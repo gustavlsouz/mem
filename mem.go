@@ -34,8 +34,8 @@ type Context struct {
 
 type Config struct {
 	Interval        float32  `json:"interval"`
-	MaxUsage        int16    `json:"maxUsage"`
-	CiritalUsage    int16    `json:"ciritalUsage"`
+	MaxUsage        uint64   `json:"maxUsage"`
+	CiritalUsage    uint64   `json:"ciritalUsage"`
 	Ignores         []string `json:"ignores"`
 	Targets         []string `json:"targets"`
 	CriticalTargets []string `json:"criticalTargets"`
@@ -235,11 +235,9 @@ func main() {
 	}
 	config := getConfig()
 	context := &Context{
-		Interval: time.Second * time.Duration(config.Interval),
-		MaxUsage: 6800,
-		// MaxUsage: 1000,
-		CriticalUsage: 7200,
-		// CriticalUsage:   1100,
+		Interval:        time.Second * time.Duration(config.Interval),
+		MaxUsage:        config.MaxUsage,
+		CriticalUsage:   config.CiritalUsage,
 		Ignores:         config.Ignores,
 		Targets:         config.Targets,
 		CriticalTargets: config.CriticalTargets,
